@@ -9,7 +9,7 @@ import json
 # Adiciona o diretório src ao sys.path para garantir que o import funcione
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from setupCopier import get_iracing_setup_folders, get_current_setup_files, copy_setup_files
+from main import get_iracing_setup_folders, get_current_setup_files, copy_setup_files
 
 class TestSetupCopier(unittest.TestCase):
     def setUp(self):
