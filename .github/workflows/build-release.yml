@@ -12,19 +12,19 @@ jobs:
     timeout-minutes: 15  # Timeout para evitar jobs travados
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0  # Necessário para gerar notas de release completas
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'  # Habilita cache de dependências
 
     - name: Cache pip packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -49,8 +49,12 @@ jobs:
           echo "Executable was not created!"
           exit 1
         fi
-        # Verifica se o arquivo tem permissões de execução
+        # Verifica se o arquivo tem permissões de execução e tamanho mínimo
         chmod +x dist/iRacingSetupCopier
+        if [ $(stat -f%z "dist/iRacingSetupCopier") -lt 1000000 ]; then
+          echo "Executable size seems too small, might be corrupted"
+          exit 1
+        fi
 
     - name: Generate version
       id: version
@@ -61,8 +65,8 @@ jobs:
 
     - name: Create tag
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
         git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
         git push origin "${{ steps.version.outputs.version }}"
