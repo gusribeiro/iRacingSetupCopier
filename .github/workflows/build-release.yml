@@ -22,7 +22,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --name iRacingSetupCopier src/setupCopier.py
+          pyinstaller --onefile --name iRacingSetupCopier src/main.py
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
