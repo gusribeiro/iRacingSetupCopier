@@ -22,3 +22,4 @@ env/
 *.sto
 *.car
 *.ini
+setup_copier.log
