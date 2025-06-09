@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import os
 import sys
+from unittest.mock import patch
 
 # Adiciona o diretório src ao sys.path para garantir que o import funcione
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -47,11 +48,16 @@ class TestSetupCopier(unittest.TestCase):
             except FileNotFoundError:
                 pass
 
-    def test_get_iracing_setup_folders(self):
+    @patch('pathlib.Path.home')
+    def test_get_iracing_setup_folders(self, mock_home):
+        # Mock the home directory to point to our test directory
+        mock_home.return_value = Path(self.test_dir)
+
         # Test with valid directory
         folders = get_iracing_setup_folders()
         self.assertIsInstance(folders, list)
         self.assertTrue(all(isinstance(f, Path) for f in folders))
+        self.assertEqual(len(folders), 2)  # We created 2 car folders
 
         # Test with non-existent directory
         shutil.rmtree(self.iracing_dir)
