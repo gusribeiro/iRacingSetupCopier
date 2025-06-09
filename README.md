@@ -41,3 +41,20 @@ The script expects setup files to follow this naming pattern:
 Where:
 - CARCODE must be in the third position, separated by underscores (_)
 - CARCODE is the car identifier that matches the folder name in your iRacing setups directory
+
+### Contributing
+Contributions are always welcome! If you'd like to contribute to the project, follow these steps:
+
+1. Fork the project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+Please make sure to:
+- Follow code best practices
+- Add tests for new features
+- Update documentation when necessary
+- Keep the code clean and well-organized
+
+To report bugs or suggest new features, please open an issue on GitHub.

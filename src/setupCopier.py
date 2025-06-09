@@ -2,94 +2,148 @@ import os
 import shutil
 from pathlib import Path
 import ctypes
+import logging
+from typing import List, Tuple, Dict
 
-def get_iracing_setup_folders():
-    """Get all setup folders from iRacing directory."""
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('setup_copier.log')
+    ]
+)
+
+def get_iracing_setup_folders() -> List[Path]:
+    """
+    Get all setup folders from iRacing directory.
+
+    Returns:
+        List[Path]: List of Path objects representing setup folders
+
+    Raises:
+        FileNotFoundError: If iRacing setups directory is not found
+    """
     iracing_path = Path.home() / "Documents" / "iRacing" / "setups"
     if not iracing_path.exists():
         raise FileNotFoundError(f"iRacing setups directory not found at: {iracing_path}")
 
     folders = [folder for folder in iracing_path.iterdir() if folder.is_dir()]
 
-    # Log all found folders
-    print("\nFound setup folders:")
+    logging.info(f"Found {len(folders)} setup folders:")
     for folder in folders:
-        print(f"- {folder.name}")
-    print()  # Add empty line for better readability
+        logging.info(f"- {folder.name}")
 
     return folders
 
-def get_current_setup_files():
-    """Get all setup files from current directory."""
-    current_dir = Path.cwd()
-    return [file for file in current_dir.iterdir() if file.is_file() and file.suffix.lower() == '.sto']
+def get_current_setup_files() -> List[Path]:
+    """
+    Get all setup files from current directory.
 
-def copy_setup_files(setup_folders, setup_files):
-    """Copy setup files to their corresponding folders based on car code in filename."""
+    Returns:
+        List[Path]: List of Path objects representing .sto files
+    """
+    current_dir = Path.cwd()
+    files = [file for file in current_dir.iterdir() if file.is_file() and file.suffix.lower() == '.sto']
+
+    logging.info(f"Found {len(files)} setup files in current directory")
+    return files
+
+def extract_car_code(filename: str) -> str:
+    """
+    Extract car code from setup filename.
+
+    Args:
+        filename (str): Setup filename
+
+    Returns:
+        str: Extracted car code
+
+    Raises:
+        ValueError: If filename format is invalid
+    """
+    try:
+        return filename.split('_')[2].lower()
+    except IndexError:
+        raise ValueError(f"Invalid filename format: {filename}. Expected format: VRS_25S1DS_CARCODE_*.sto")
+
+def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tuple[List[str], List[str]]:
+    """
+    Copy setup files to their corresponding folders based on car code in filename.
+
+    Args:
+        setup_folders (List[Path]): List of setup folder paths
+        setup_files (List[Path]): List of setup file paths
+
+    Returns:
+        Tuple[List[str], List[str]]: Tuple containing lists of successful copies and errors
+    """
     copied_files = []
     errors = []
 
+    # Create a mapping of car codes to folders for faster lookup
+    folder_map: Dict[str, Path] = {
+        folder.name.lower(): folder for folder in setup_folders
+    }
+
     for setup_file in setup_files:
-        # Extract car code from filename (assuming format: VRS_25S1DS_CARCODE_*.sto)
         try:
-            car_code = setup_file.stem.split('_')[2].lower()
-        except IndexError:
-            errors.append(f"Invalid filename format for {setup_file.name}")
-            continue
+            car_code = extract_car_code(setup_file.stem)
+            matching_folder = folder_map.get(car_code)
 
-        # Find matching folder
-        matching_folder = None
-        for folder in setup_folders:
-            if car_code in folder.name.lower():
-                matching_folder = folder
-                break
-
-        if matching_folder:
-            try:
+            if matching_folder:
                 destination = matching_folder / setup_file.name
                 shutil.copy2(setup_file, destination)
                 copied_files.append(f"{setup_file.name} -> {matching_folder.name}")
-            except Exception as e:
-                errors.append(f"Error copying {setup_file.name}: {str(e)}")
-        else:
-            errors.append(f"No matching folder found for car code '{car_code}' in {setup_file.name}")
+                logging.info(f"Copied {setup_file.name} to {matching_folder.name}")
+            else:
+                error_msg = f"No matching folder found for car code '{car_code}' in {setup_file.name}"
+                errors.append(error_msg)
+                logging.warning(error_msg)
+
+        except ValueError as e:
+            errors.append(str(e))
+            logging.error(str(e))
+        except Exception as e:
+            error_msg = f"Error copying {setup_file.name}: {str(e)}"
+            errors.append(error_msg)
+            logging.error(error_msg)
 
     return copied_files, errors
 
+def show_message_box(message: str, title: str, icon: int = 0x40):
+    """
+    Show a Windows message box.
+
+    Args:
+        message (str): Message to display
+        title (str): Window title
+        icon (int): Icon type (0x40 for info, 0x10 for error)
+    """
+    try:
+        ctypes.windll.user32.MessageBoxW(0, message, title, icon)
+    except Exception as e:
+        logging.error(f"Failed to show message box: {str(e)}")
+
 def main():
     try:
-        print("Starting iRacing setup files copy process...")
+        logging.info("Starting iRacing setup files copy process...")
 
         # Get setup folders from iRacing directory
         setup_folders = get_iracing_setup_folders()
-        print(f"Found {len(setup_folders)} setup folders in iRacing directory")
 
         # Get setup files from current directory
         setup_files = get_current_setup_files()
-        print(f"Found {len(setup_files)} setup files in current directory")
 
         if not setup_files:
-            print("No setup files found in current directory!")
-            # Show alert for no files
-            ctypes.windll.user32.MessageBoxW(0, "Nenhum arquivo de setup (.sto) encontrado no diretório atual!", "Aviso", 0x30)
+            message = "Nenhum arquivo de setup (.sto) encontrado no diretório atual!"
+            logging.warning(message)
+            show_message_box(message, "Aviso", 0x30)
             return
 
         # Copy files to their respective folders
         copied_files, errors = copy_setup_files(setup_folders, setup_files)
-
-        # Display results in terminal
-        if copied_files:
-            print("\nSuccessfully copied files:")
-            for file in copied_files:
-                print(f"- {file}")
-
-        if errors:
-            print("\nErrors encountered:")
-            for error in errors:
-                print(f"- {error}")
-
-        if not errors:
-            print("\nAll files were copied successfully!")
 
         # Build alert message
         alert_msg = []
@@ -101,19 +155,17 @@ def main():
             alert_msg.append("Nenhum arquivo foi processado.")
         if not errors and copied_files:
             alert_msg.append("\nTodos os arquivos foram copiados com sucesso!")
+
         final_msg = '\n'.join(alert_msg)
 
-        # Show alert
-        if errors:
-            icon = 0x10  # MB_ICONERROR
-        else:
-            icon = 0x40  # MB_ICONINFORMATION
-        ctypes.windll.user32.MessageBoxW(0, final_msg, "Resultado da cópia de setups", icon)
+        # Show appropriate message box
+        icon = 0x10 if errors else 0x40  # MB_ICONERROR if errors, MB_ICONINFORMATION otherwise
+        show_message_box(final_msg, "Resultado da cópia de setups", icon)
 
     except Exception as e:
-        print(f"\nAn error occurred: {str(e)}")
-        # Show alert for fatal error
-        ctypes.windll.user32.MessageBoxW(0, f"Erro fatal: {str(e)}", "Erro", 0x10)
+        error_msg = f"Erro fatal: {str(e)}"
+        logging.error(error_msg)
+        show_message_box(error_msg, "Erro", 0x10)
 
 if __name__ == "__main__":
     main()

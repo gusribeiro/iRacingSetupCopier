@@ -1,0 +1,10 @@
+2025-06-09 19:01:17,103 - INFO - Copied VRS_25S1DS_porsche992gt3_test.sto to porsche992gt3
+2025-06-09 19:01:17,103 - INFO - Copied VRS_25S1DS_ferrarigt3_test.sto to ferrarigt3
+2025-06-09 19:01:17,106 - ERROR - Invalid filename format: invalid_format. Expected format: VRS_25S1DS_CARCODE_*.sto
+2025-06-09 19:01:17,108 - WARNING - No matching folder found for car code 'nonexistentcar' in VRS_25S1DS_nonexistentcar_test.sto
+2025-06-09 19:01:17,111 - INFO - Found 2 setup files in current directory
+2025-06-09 19:03:57,665 - INFO - Copied VRS_25S1DS_porsche992gt3_test.sto to porsche992gt3
+2025-06-09 19:03:57,665 - INFO - Copied VRS_25S1DS_ferrarigt3_test.sto to ferrarigt3
+2025-06-09 19:03:57,668 - ERROR - Invalid filename format: invalid_format. Expected format: VRS_25S1DS_CARCODE_*.sto
+2025-06-09 19:03:57,670 - WARNING - No matching folder found for car code 'nonexistentcar' in VRS_25S1DS_nonexistentcar_test.sto
+2025-06-09 19:03:57,672 - INFO - Found 2 setup files in current directory
