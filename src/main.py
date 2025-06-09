@@ -7,6 +7,7 @@ from typing import List, Tuple, Dict
 import tkinter as tk
 from tkinter import ttk
 import json
+from iracing_folders import IRACING_FOLDERS_MAPPING
 
 # Configure logging
 logging.basicConfig(
@@ -85,9 +86,8 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
     copied_files = []
     errors = []
 
-    # Load the car code to folder mapping
-    with open(Path(__file__).parent / 'iracing-folders.json', 'r') as f:
-        car_code_mapping = json.load(f)
+    # Use the imported mapping dictionary
+    car_code_mapping = IRACING_FOLDERS_MAPPING
 
     # Create a reverse mapping for easier lookup, converting all keys and values to lowercase
     folder_mapping = {v.lower(): v for v in car_code_mapping.values()}  # Default mapping
