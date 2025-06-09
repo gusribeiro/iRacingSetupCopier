@@ -27,11 +27,19 @@ jobs:
       run: |
         pyinstaller --onefile --name iRacingSetupCopier src/setupCopier.py
 
+    - name: Create tag
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v$(date +'%Y.%m.%d')" -m "Release $(date +'%Y-%m-%d')"
+        git push origin "v$(date +'%Y.%m.%d')"
+
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
         files: dist/iRacingSetupCopier
         generate_release_notes: true
+        tag_name: v$(date +'%Y.%m.%d')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
