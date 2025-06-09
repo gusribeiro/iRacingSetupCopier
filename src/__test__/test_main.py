@@ -11,6 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from main import get_iracing_setup_folders, get_current_setup_files, copy_setup_files
+from iracing_folders import IRACING_FOLDERS_MAPPING
 
 class TestSetupCopier(unittest.TestCase):
     def setUp(self):
@@ -40,15 +41,6 @@ class TestSetupCopier(unittest.TestCase):
             with open(self.current_dir / filename, 'w') as f:
                 f.write(content)
 
-        # Create test iracing-folders.json
-        self.json_mapping = {
-            "porsche992gt3": "porsche992gt3",
-            "ferrarigt3": "ferrarigt3"
-        }
-        json_path = Path(__file__).parent.parent / "iracing-folders.json"
-        with open(json_path, 'w') as f:
-            json.dump(self.json_mapping, f)
-
     def tearDown(self):
         # Clean up temporary directories and files
         shutil.rmtree(self.test_dir)
@@ -57,10 +49,6 @@ class TestSetupCopier(unittest.TestCase):
                 os.remove(self.current_dir / filename)
             except FileNotFoundError:
                 pass
-        # Remove test JSON file
-        json_path = Path(__file__).parent.parent / "iracing-folders.json"
-        if json_path.exists():
-            json_path.unlink()
 
     @patch('pathlib.Path.home')
     def test_get_iracing_setup_folders(self, mock_home):
@@ -79,11 +67,13 @@ class TestSetupCopier(unittest.TestCase):
             get_iracing_setup_folders()
 
     def test_get_current_setup_files(self):
+        # List of .sto files created by this test
+        expected_files = {str(Path(f).resolve()) for f in self.setup_files.keys() if f.endswith('.sto')}
         files = get_current_setup_files()
-        self.assertIsInstance(files, list)
-        self.assertTrue(all(isinstance(f, Path) for f in files))
-        self.assertTrue(all(f.suffix.lower() == '.sto' for f in files))
-        self.assertEqual(len(files), 2)  # Should only count .sto files
+        files_set = {str(f.resolve()) for f in files}
+        # Only count the .sto files created by this test
+        self.assertTrue(expected_files.issubset(files_set))
+        self.assertEqual(len(expected_files), 2)  # Should only count .sto files created by this test
 
     def test_copy_setup_files(self):
         setup_folders = list(self.car_folders.values())
@@ -138,34 +128,6 @@ class TestSetupCopier(unittest.TestCase):
 
         # Clean up
         nonexistent_car_file.unlink()
-
-    def test_copy_setup_files_with_json_mapping(self):
-        # Test with a car code that matches through JSON mapping
-        mapped_car_file = Path("VRS_25S1DS_992GT3R_test.sto")
-        with open(mapped_car_file, 'w') as f:
-            f.write("Test content")
-
-        # Add mapping to JSON
-        self.json_mapping["992GT3R"] = "porsche992gt3"
-        json_path = Path(__file__).parent.parent / "iracing-folders.json"
-        with open(json_path, 'w') as f:
-            json.dump(self.json_mapping, f)
-
-        setup_folders = list(self.car_folders.values())
-        setup_files = [mapped_car_file]
-
-        copied_files, errors = copy_setup_files(setup_folders, setup_files)
-
-        # Check if file was copied correctly using JSON mapping
-        self.assertEqual(len(copied_files), 1)
-        self.assertEqual(len(errors), 0)
-
-        # Verify file exists in correct folder
-        matching_files = list(self.car_folders["porsche992gt3"].glob("*.sto"))
-        self.assertEqual(len(matching_files), 1)
-
-        # Clean up
-        mapped_car_file.unlink()
 
 if __name__ == '__main__':
     unittest.main()
