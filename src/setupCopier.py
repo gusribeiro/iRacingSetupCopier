@@ -84,15 +84,19 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
     copied_files = []
     errors = []
 
-    # Create a mapping of car codes to folders for faster lookup
-    folder_map: Dict[str, Path] = {
-        folder.name.lower(): folder for folder in setup_folders
-    }
+    # Create a list of folder names for flexible matching
+    folder_names = [(folder.name.lower(), folder) for folder in setup_folders]
 
     for setup_file in setup_files:
         try:
             car_code = extract_car_code(setup_file.stem)
-            matching_folder = folder_map.get(car_code)
+            matching_folder = None
+
+            # Search for car code in any part of the folder name
+            for folder_name, folder in folder_names:
+                if car_code in folder_name:
+                    matching_folder = folder
+                    break
 
             if matching_folder:
                 destination = matching_folder / setup_file.name
