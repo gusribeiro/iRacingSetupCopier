@@ -4,6 +4,8 @@ from pathlib import Path
 import ctypes
 import logging
 from typing import List, Tuple, Dict
+import tkinter as tk
+from tkinter import ttk
 
 # Configure logging
 logging.basicConfig(
@@ -82,15 +84,19 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
     copied_files = []
     errors = []
 
-    # Create a mapping of car codes to folders for faster lookup
-    folder_map: Dict[str, Path] = {
-        folder.name.lower(): folder for folder in setup_folders
-    }
+    # Create a list of folder names for flexible matching
+    folder_names = [(folder.name.lower(), folder) for folder in setup_folders]
 
     for setup_file in setup_files:
         try:
             car_code = extract_car_code(setup_file.stem)
-            matching_folder = folder_map.get(car_code)
+            matching_folder = None
+
+            # Search for car code in any part of the folder name
+            for folder_name, folder in folder_names:
+                if car_code in folder_name:
+                    matching_folder = folder
+                    break
 
             if matching_folder:
                 destination = matching_folder / setup_file.name
@@ -114,7 +120,7 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
 
 def show_message_box(message: str, title: str, icon: int = 0x40):
     """
-    Show a Windows message box.
+    Show a custom message box with scrollable text area.
 
     Args:
         message (str): Message to display
@@ -122,9 +128,58 @@ def show_message_box(message: str, title: str, icon: int = 0x40):
         icon (int): Icon type (0x40 for info, 0x10 for error)
     """
     try:
-        ctypes.windll.user32.MessageBoxW(0, message, title, icon)
+        # Create the main window
+        root = tk.Tk()
+        root.title(title)
+
+        # Set window size and position
+        window_width = 600
+        window_height = 400
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+        # Create main frame
+        main_frame = ttk.Frame(root, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Create text widget with scrollbar
+        text_frame = ttk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=text_widget.yview)
+
+        # Insert message
+        text_widget.insert(tk.END, message)
+        text_widget.config(state=tk.DISABLED)  # Make text read-only
+
+        # Create OK button
+        ok_button = ttk.Button(main_frame, text="OK", command=root.destroy)
+        ok_button.pack(pady=10)
+
+        # Set icon
+        if icon == 0x10:  # Error icon
+            root.iconbitmap("error.ico") if os.path.exists("error.ico") else None
+        else:  # Info icon
+            root.iconbitmap("info.ico") if os.path.exists("info.ico") else None
+
+        # Start the event loop
+        root.mainloop()
+
     except Exception as e:
         logging.error(f"Failed to show message box: {str(e)}")
+        # Fallback to Windows message box if Tkinter fails
+        try:
+            ctypes.windll.user32.MessageBoxW(0, message, title, icon)
+        except Exception as e2:
+            logging.error(f"Failed to show fallback message box: {str(e2)}")
 
 def main():
     try:
