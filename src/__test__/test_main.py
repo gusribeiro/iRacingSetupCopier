@@ -5,6 +5,7 @@ import tempfile
 import os
 import sys
 import json
+from unittest.mock import patch
 
 # Adiciona o diretório src ao sys.path para garantir que o import funcione
 sys.path.insert(0, str(Path(__file__).parent.parent))
