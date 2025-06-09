@@ -89,9 +89,9 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
     with open(Path(__file__).parent / 'iracing-folders.json', 'r') as f:
         car_code_mapping = json.load(f)
 
-    # Create a reverse mapping for easier lookup
-    folder_mapping = {v: v for v in car_code_mapping.values()}  # Default mapping
-    folder_mapping.update({k: v for k, v in car_code_mapping.items() if k})  # Add non-empty keys
+    # Create a reverse mapping for easier lookup, converting all keys and values to lowercase
+    folder_mapping = {v.lower(): v for v in car_code_mapping.values()}  # Default mapping
+    folder_mapping.update({k.lower(): v for k, v in car_code_mapping.items() if k})
 
     for setup_file in setup_files:
         try:
@@ -99,8 +99,8 @@ def copy_setup_files(setup_folders: List[Path], setup_files: List[Path]) -> Tupl
             matching_folder = None
 
             # First try to find an exact match in the mapping
-            if car_code in folder_mapping:
-                folder_name = folder_mapping[car_code]
+            if car_code.lower() in folder_mapping:
+                folder_name = folder_mapping[car_code.lower()]
                 matching_folder = next((folder for folder in setup_folders if folder.name.lower() == folder_name.lower()), None)
 
             # If no exact match, try to find a partial match
