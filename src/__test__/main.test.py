@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import os
 import sys
-from unittest.mock import patch
+import json
 
 # Adiciona o diretório src ao sys.path para garantir que o import funcione
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -28,8 +28,8 @@ class TestSetupCopier(unittest.TestCase):
 
         # Create test setup files
         self.setup_files = {
-            "VRS_25S1DS_porsche992gt3_test.sto": "Test content for Porsche",
-            "VRS_25S1DS_ferrarigt3_test.sto": "Test content for Ferrari",
+            "XXX_ASD123_porsche992gt3_test.sto": "Test content for Porsche",
+            "XXX_ASD123_ferrarigt3_test.sto": "Test content for Ferrari",
             "invalid_format.txt": "Invalid file",
         }
 
@@ -39,6 +39,15 @@ class TestSetupCopier(unittest.TestCase):
             with open(self.current_dir / filename, 'w') as f:
                 f.write(content)
 
+        # Create test iracing-folders.json
+        self.json_mapping = {
+            "porsche992gt3": "porsche992gt3",
+            "ferrarigt3": "ferrarigt3"
+        }
+        json_path = Path(__file__).parent.parent / "iracing-folders.json"
+        with open(json_path, 'w') as f:
+            json.dump(self.json_mapping, f)
+
     def tearDown(self):
         # Clean up temporary directories and files
         shutil.rmtree(self.test_dir)
@@ -47,6 +56,10 @@ class TestSetupCopier(unittest.TestCase):
                 os.remove(self.current_dir / filename)
             except FileNotFoundError:
                 pass
+        # Remove test JSON file
+        json_path = Path(__file__).parent.parent / "iracing-folders.json"
+        if json_path.exists():
+            json_path.unlink()
 
     @patch('pathlib.Path.home')
     def test_get_iracing_setup_folders(self, mock_home):
@@ -124,6 +137,34 @@ class TestSetupCopier(unittest.TestCase):
 
         # Clean up
         nonexistent_car_file.unlink()
+
+    def test_copy_setup_files_with_json_mapping(self):
+        # Test with a car code that matches through JSON mapping
+        mapped_car_file = Path("VRS_25S1DS_992GT3R_test.sto")
+        with open(mapped_car_file, 'w') as f:
+            f.write("Test content")
+
+        # Add mapping to JSON
+        self.json_mapping["992GT3R"] = "porsche992gt3"
+        json_path = Path(__file__).parent.parent / "iracing-folders.json"
+        with open(json_path, 'w') as f:
+            json.dump(self.json_mapping, f)
+
+        setup_folders = list(self.car_folders.values())
+        setup_files = [mapped_car_file]
+
+        copied_files, errors = copy_setup_files(setup_folders, setup_files)
+
+        # Check if file was copied correctly using JSON mapping
+        self.assertEqual(len(copied_files), 1)
+        self.assertEqual(len(errors), 0)
+
+        # Verify file exists in correct folder
+        matching_files = list(self.car_folders["porsche992gt3"].glob("*.sto"))
+        self.assertEqual(len(matching_files), 1)
+
+        # Clean up
+        mapped_car_file.unlink()
 
 if __name__ == '__main__':
     unittest.main()
